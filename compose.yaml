@@ -1,0 +1,12 @@
+services:
+  postgres-db:
+    image: postgres:16
+    container_name: chat-postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: lms_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - lms_postgres_data:/var/lib/postgresql/data
