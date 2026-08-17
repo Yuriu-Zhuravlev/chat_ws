@@ -6,44 +6,44 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
+import java.time.Instant;
+
 
 @Entity
-@Table(name = "REFRESH_TOKENS", schema = "AUTH_SCHEMA")
+@Table(name = "refresh_tokens", schema = "auth_schema")
 @Getter
-public class RefreshTokens {
+public class RefreshToken {
     @Id
     @GeneratedValue
-    UUID id;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    User user;
+    private User user;
 
     @Column(unique = true, nullable = false)
-    String tokenHash;
+    private String tokenHash;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
-    LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Column(nullable = false)
-    LocalDateTime expiredAt;
+    private Instant expiresAt;
 
     @Setter
-    LocalDateTime usedAt;
+    private Instant usedAt;
 
     @Setter
-    LocalDateTime revokedAt;
+    private Instant revokedAt;
 
     @Builder
-    public RefreshTokens(User user, String tokenHash, LocalDateTime expiredAt) {
+    public RefreshToken(User user, String tokenHash, Instant expiresAt) {
         this.user = user;
         this.tokenHash = tokenHash;
-        this.expiredAt = expiredAt;
+        this.expiresAt = expiresAt;
     }
 
-    protected RefreshTokens() {
+    protected RefreshToken() {
     }
 }

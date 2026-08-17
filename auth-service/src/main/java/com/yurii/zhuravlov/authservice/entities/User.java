@@ -4,29 +4,28 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
+import java.time.Instant;
 
 @Entity
-@Table(name = "USERS", schema = "AUTH_SCHEMA")
+@Table(name = "users", schema = "auth_schema")
 @Getter
 public class User {
     @Id
     @GeneratedValue
-    UUID id;
+    private Long id;
 
     @Column(unique = true, nullable = false)
-    String username;
+    private String username;
 
     @Column(nullable = false)
-    String passwordHashed;
+    private String passwordHash;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
-    LocalDateTime createdAt;
+    private Instant createdAt;
 
     public User(String passwordHashed, String username) {
-        this.passwordHashed = passwordHashed;
+        this.passwordHash = passwordHashed;
         this.username = username;
     }
 

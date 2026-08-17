@@ -5,31 +5,52 @@ server:
 spring:
   application:
     name: auth-service
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+
   datasource:
-    url: "jdbc:postgresql://localhost:5433/lms_db?currentSchema=auth_schema&options=-c timezone=UTC"
-    username: ${SPRING_DATASOURCE_PASSWORD:user}
-    password: ${SPRING_DATASOURCE_USERNAME:password}
+    url: jdbc:postgresql://localhost:5433/chat_db?currentSchema=auth_schema
+    username: chat_user
+    password: chat_password
 
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
     properties:
       hibernate:
         default_schema: auth_schema
         format_sql: true
     show-sql: true
+    open-in-view: false
 
   flyway:
     enabled: true
     schemas: auth_schema
     locations: classpath:db/migration
-    baseline-on-migrate: true
 
-  management:
-    endpoints:
-      web:
-        exposure:
-          include: health,info,metrics
-    endpoint:
-      health:
-        show-details: never
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+app:
+  jwt:
+    issuer: auth-service
+    access-token-ttl: 15m
+    refresh-token-ttl: 30d
+    key-id: main-2026-08
+    private-key: ${JWT_PRIVATE_KEY_PATH:file:./auth-service/keys/private.pem}
+    public-key: ${JWT_PUBLIC_KEY_PATH:file:./auth-service/keys/public.pem}

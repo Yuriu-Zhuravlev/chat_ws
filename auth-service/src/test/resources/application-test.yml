@@ -1,0 +1,23 @@
+spring:
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    schemas: auth_schema
+  main:
+    allow-bean-definition-overriding: true
+
+app:
+  jwt:
+    issuer: auth-service-test
+    access-token-ttl: 15m
+    refresh-token-ttl: 30d
+    key-id: test-key
+    generate-keys: true
+
+
+logging:
+  level:
+    org.springframework.transaction: DEBUG
