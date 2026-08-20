@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -64,7 +65,7 @@ class TokenIssuerTest {
 
         private final JwtProperties properties = new JwtProperties(
                 "auth-service", Duration.ofMinutes(15), Duration.ofDays(30),
-                "test-key", null, null);
+                "test-key", null, null, List.of("auth-service", "chat-service", "notification-service"));
 
         private TokenIssuer tokenIssuer;
 

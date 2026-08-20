@@ -3,6 +3,8 @@ package com.yurii.zhuravlov.authservice.handlers;
 import com.yurii.zhuravlov.authservice.dto.errors.ErrorResponse;
 import com.yurii.zhuravlov.authservice.exceptions.AuthServiceException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Path;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpHeaders;
@@ -84,5 +86,28 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 statusCode.value()
         );
         return new ResponseEntity<>(error, headers, statusCode);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(
+            ConstraintViolationException ex, HttpServletRequest request) {
+
+        String details = ex.getConstraintViolations().stream()
+                .map(v -> lastNode(v.getPropertyPath()) + ": " + v.getMessage())
+                .collect(Collectors.joining(", "));
+
+        ErrorResponse error = new ErrorResponse(
+                "Validation Failed",
+                details,
+                request.getRequestURI(),
+                HttpStatus.BAD_REQUEST.value()
+        );
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    private String lastNode(Path path) {
+        String full = path.toString();          // "search.query"
+        int dot = full.lastIndexOf('.');
+        return dot >= 0 ? full.substring(dot + 1) : full;
     }
 }

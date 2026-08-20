@@ -19,6 +19,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -29,7 +30,7 @@ class AccessTokenServiceTest {
     private JwtDecoder decoder;
     private final JwtProperties properties = new JwtProperties(
             "auth-service", Duration.ofMinutes(15), Duration.ofDays(30),
-            "test-key", null, null);
+            "test-key", null, null, List.of("auth-service", "chat-service", "notification-service"));
 
     @BeforeEach
     void setUp() throws Exception {
@@ -66,7 +67,7 @@ class AccessTokenServiceTest {
     void shouldTargetChatAndNotificationServices() {
         Jwt jwt = decoder.decode(service.issue(userWithId(42L, "vasyl")));
         assertThat(jwt.getAudience())
-                .containsExactlyInAnyOrder("chat-service", "notification-service");
+                .containsExactlyInAnyOrder("auth-service", "chat-service", "notification-service");
     }
 
     @Test

@@ -15,15 +15,15 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.converter.RsaKeyConverters;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
+import org.springframework.security.oauth2.jwt.*;
 
 import java.io.IOException;
 
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
@@ -62,8 +62,18 @@ public class JwtConfig {
 
     @Bean
     public JwtDecoder jwtDecoder(RSAKey rsaKey) throws JOSEException {
-        return NimbusJwtDecoder
+        NimbusJwtDecoder decoder = NimbusJwtDecoder
                 .withPublicKey(rsaKey.toRSAPublicKey())
+                .signatureAlgorithm(SignatureAlgorithm.RS256)
                 .build();
+
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                new JwtTimestampValidator(),
+                new JwtIssuerValidator(properties.issuer()),
+                new JwtClaimValidator<List<String>>(JwtClaimNames.AUD,
+                        aud -> aud.contains("auth-service"))
+        ));
+
+        return decoder;
     }
 }

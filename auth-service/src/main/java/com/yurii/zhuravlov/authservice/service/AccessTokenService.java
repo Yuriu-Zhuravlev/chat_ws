@@ -11,7 +11,6 @@ import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -30,7 +29,7 @@ public class AccessTokenService {
                 .expiresAt(now.plus(properties.accessTokenTtl()))
                 .subject(user.getId().toString())
                 .id(UUID.randomUUID().toString())
-                .audience(List.of("chat-service", "notification-service"))
+                .audience(properties.audiences())
                 .claim("username", user.getUsername())
                 .build();
 

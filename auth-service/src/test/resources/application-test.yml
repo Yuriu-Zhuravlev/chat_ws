@@ -21,3 +21,4 @@ app:
 logging:
   level:
     org.springframework.transaction: DEBUG
+    org.springframework.test.context.cache: DEBUG

@@ -54,3 +54,4 @@ app:
     key-id: main-2026-08
     private-key: ${JWT_PRIVATE_KEY_PATH:file:./auth-service/keys/private.pem}
     public-key: ${JWT_PUBLIC_KEY_PATH:file:./auth-service/keys/public.pem}
+    audiences: auth-service,chat-service,notification-service
