@@ -3,6 +3,9 @@ spring:
     show-sql: false
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        generate_statistics: true
   flyway:
     enabled: true
     schemas: auth_schema
@@ -16,6 +19,12 @@ app:
     refresh-token-ttl: 30d
     key-id: test-key
     generate-keys: true
+  kafka:
+    outbox:
+      scheduling-enabled: false
+      batch-size: 100
+      poll-interval: 1000
+      max-attempts: 5
 
 
 logging:

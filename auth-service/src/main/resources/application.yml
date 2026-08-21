@@ -28,14 +28,25 @@ spring:
     properties:
       hibernate:
         default_schema: auth_schema
-        format_sql: true
-    show-sql: true
+        generate_statistics: true
+    show-sql: false
     open-in-view: false
 
   flyway:
     enabled: true
     schemas: auth_schema
     locations: classpath:db/migration
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      acks: all
+      properties:
+        schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8080/apis/ccompat/v7}
+        auto.register.schemas: true
+        enable.idempotence: true
 
 management:
   endpoints:
@@ -46,7 +57,18 @@ management:
     health:
       show-details: always
 
+logging:
+  level:
+    org.hibernate.stat: DEBUG
+
 app:
+  kafka:
+    topics:
+      user-events: user-events
+    outbox:
+      batch-size: 100
+      poll-interval: 5000
+      max-attempts: 5
   jwt:
     issuer: auth-service
     access-token-ttl: 15m

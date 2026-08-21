@@ -1,8 +1,12 @@
 package com.yurii.zhuravlov.authservice;
 
 import com.yurii.zhuravlov.authservice.entities.User;
+import com.yurii.zhuravlov.authservice.repo.OutboxEventRepository;
 import com.yurii.zhuravlov.authservice.repo.RefreshTokenRepository;
 import com.yurii.zhuravlov.authservice.repo.UserRepository;
+import jakarta.persistence.EntityManagerFactory;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -35,11 +39,27 @@ public abstract class IntegrationTestBase {
     protected JdbcTemplate jdbcTemplate;
     @Autowired
     protected StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    protected OutboxEventRepository outboxRepository;
+
+    @Autowired protected EntityManagerFactory entityManagerFactory;
+
+    protected Statistics statistics() {
+        return entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    }
+
+    protected long countQueries(Runnable action) {
+        Statistics stats = statistics();
+        stats.clear();
+        action.run();
+        return stats.getPrepareStatementCount();
+    }
 
     @BeforeEach
     void cleanState() {
         refreshTokenRepository.deleteAllInBatch();
         userRepository.deleteAllInBatch();
+        outboxRepository.deleteAllInBatch();
         try (RedisConnection connection = redisConnectionFactory.getConnection()) {
             connection.serverCommands().flushDb();
         }

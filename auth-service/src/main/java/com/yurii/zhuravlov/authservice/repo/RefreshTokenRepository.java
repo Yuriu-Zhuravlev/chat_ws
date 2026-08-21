@@ -12,7 +12,6 @@ import java.util.Optional;
 
 @Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
-    Optional<RefreshToken> findByTokenHash(String tokenHash);
 
     @Query("SELECT t FROM RefreshToken t JOIN FETCH t.user WHERE t.tokenHash = :hash")
     Optional<RefreshToken> findByTokenHashWithUser(@Param("hash") String hash);
@@ -33,5 +32,4 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
             "WHERE t.tokenHash = :hash AND t.usedAt IS NULL AND t.revokedAt IS NULL")
     int revokeByTokenHash(@Param("hash") String hash, @Param("now") Instant now);
 
-    Optional<RefreshToken> findByUserIdAndUsedAtIsNullAndRevokedAtIsNull(Long userId);
 }

@@ -123,4 +123,39 @@ class UserServiceIntegrationTest extends IntegrationTestBase {
                     assertThat(r.username()).isEqualTo("vasyl");
                 });
     }
+
+    @Test
+    void registrationShouldWriteOutboxEvent() {
+        userService.register(new RegistrationRequest("vasyl", "password123"));
+
+        assertThat(outboxRepository.findAll())
+                .singleElement()
+                .satisfies(e -> {
+                    assertThat(e.getEventType()).isEqualTo("UserRegistered");
+                    assertThat(e.getAggregateType()).isEqualTo("User");
+                    assertThat(e.getPublishedAt()).isNull();
+                });
+    }
+
+    @Test
+    void failedRegistrationShouldNotLeaveOutboxEvent() {
+        userService.register(new RegistrationRequest("vasyl", "password123"));
+
+        assertThatThrownBy(() ->
+                userService.register(new RegistrationRequest("VASYL", "password123")))
+                .isInstanceOf(UserAlreadyExists.class);
+
+        assertThat(outboxRepository.count()).isOne();   // тільки від першої реєстрації
+    }
+
+    @Test
+    void searchShouldExecuteSingleQuery() {
+        for (int i = 0; i < 10; i++) {
+            givenUser("user%02d".formatted(i), "password123");
+        }
+
+        long queries = countQueries(() -> userService.search("user", 999L, 0));
+
+        assertThat(queries).isEqualTo(1);
+    }
 }

@@ -1,0 +1,10 @@
+{
+  "type": "record",
+  "name": "UserRegistered",
+  "namespace": "com.yurii.zhuravlov.contracts.user",
+  "fields": [
+    { "name": "userId",     "type": "long" },
+    { "name": "username",   "type": "string" },
+    { "name": "occurredAt", "type": { "type": "long", "logicalType": "timestamp-millis" } }
+  ]
+}

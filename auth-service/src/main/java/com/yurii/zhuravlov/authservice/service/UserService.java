@@ -2,7 +2,6 @@ package com.yurii.zhuravlov.authservice.service;
 
 import com.yurii.zhuravlov.authservice.dto.requests.RegistrationRequest;
 import com.yurii.zhuravlov.authservice.dto.responses.UserResponse;
-import com.yurii.zhuravlov.authservice.entities.User;
 import com.yurii.zhuravlov.authservice.exceptions.AuthServiceException;
 import com.yurii.zhuravlov.authservice.exceptions.UserAlreadyExists;
 import com.yurii.zhuravlov.authservice.repo.UserRepository;
@@ -21,15 +20,16 @@ import java.util.List;
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserRegistrar userRegistrar;
 
 
     public void register(RegistrationRequest request) {
         if (userRepository.findByUsernameIgnoreCase(request.username()).isPresent()) {
             throw new UserAlreadyExists("Username is already taken");
         }
-        User user = new User(passwordEncoder.encode(request.password()), request.username());
+        String hash = passwordEncoder.encode(request.password());
         try {
-            userRepository.saveAndFlush(user);
+            userRegistrar.createWithEvent(request.username(), hash);
         } catch (DataIntegrityViolationException e) {
             throw new UserAlreadyExists("Username is already taken");
         }
