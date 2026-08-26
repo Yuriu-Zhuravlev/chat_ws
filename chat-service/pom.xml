@@ -7,9 +7,9 @@
         <artifactId>chat-ws</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
-    <artifactId>auth-service</artifactId>
-    <name>auth-service</name>
-    <description>auth-service</description>
+    <artifactId>chat-service</artifactId>
+    <name>chat-service</name>
+    <description>chat-service</description>
 
     <dependencies>
         <dependency>

@@ -7,13 +7,10 @@ import com.yurii.zhuravlov.authservice.exceptions.UserAlreadyExists;
 import com.yurii.zhuravlov.authservice.repo.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -42,12 +39,5 @@ public class UserService {
                 .orElseThrow(() -> new AuthServiceException("User not found", HttpStatus.NOT_FOUND));
     }
 
-    @Transactional(readOnly = true)
-    public List<UserResponse> search(String query, Long excludeUserId, int page) {
-        return userRepository
-                .searchExcluding(query, excludeUserId, PageRequest.of(page, 20))
-                .stream()
-                .map(u -> new UserResponse(u.getId(), u.getUsername()))
-                .toList();
-    }
+
 }

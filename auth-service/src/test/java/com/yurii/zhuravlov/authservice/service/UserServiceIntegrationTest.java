@@ -2,7 +2,6 @@ package com.yurii.zhuravlov.authservice.service;
 
 import com.yurii.zhuravlov.authservice.IntegrationTestBase;
 import com.yurii.zhuravlov.authservice.dto.requests.RegistrationRequest;
-import com.yurii.zhuravlov.authservice.dto.responses.UserResponse;
 import com.yurii.zhuravlov.authservice.entities.User;
 import com.yurii.zhuravlov.authservice.exceptions.UserAlreadyExists;
 import org.junit.jupiter.api.Test;
@@ -10,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Instant;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -72,59 +70,6 @@ class UserServiceIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void shouldFindByPartialMatchRegardlessOfCase() {
-        givenUser("VasylPetrenko", "password123");
-        givenUser("ivan", "password123");
-
-        assertThat(userService.search("vasyl", 999L, 0))
-                .extracting(UserResponse::username)
-                .containsExactly("VasylPetrenko");
-    }
-
-    @Test
-    void shouldExcludeRequesterFromResults() {
-        User me = givenUser("vasyl", "password123");
-        givenUser("vasylina", "password123");
-
-        assertThat(userService.search("vasyl", me.getId(), 0))
-                .extracting(UserResponse::username)
-                .containsExactly("vasylina");
-    }
-
-    @Test
-    void shouldReturnEmptyListWhenNothingMatches() {
-        givenUser("vasyl", "password123");
-
-        assertThat(userService.search("zzzz", 999L, 0)).isEmpty();
-    }
-
-    @Test
-    void shouldPaginateWithStableOrder() {
-        for (int i = 0; i < 25; i++) {
-            givenUser("user%02d".formatted(i), "password123");
-        }
-
-        List<UserResponse> first = userService.search("user", 999L, 0);
-        List<UserResponse> second = userService.search("user", 999L, 1);
-
-        assertThat(first).hasSize(20);
-        assertThat(second).hasSize(5);
-        assertThat(first).doesNotContainAnyElementsOf(second);
-    }
-
-    @Test
-    void shouldNotLeakPasswordHash() {
-        givenUser("vasyl", "password123");
-
-        assertThat(userService.search("vasyl", 999L, 0))
-                .first()
-                .satisfies(r -> {
-                    assertThat(r.id()).isNotNull();
-                    assertThat(r.username()).isEqualTo("vasyl");
-                });
-    }
-
-    @Test
     void registrationShouldWriteOutboxEvent() {
         userService.register(new RegistrationRequest("vasyl", "password123"));
 
@@ -146,16 +91,5 @@ class UserServiceIntegrationTest extends IntegrationTestBase {
                 .isInstanceOf(UserAlreadyExists.class);
 
         assertThat(outboxRepository.count()).isOne();   // тільки від першої реєстрації
-    }
-
-    @Test
-    void searchShouldExecuteSingleQuery() {
-        for (int i = 0; i < 10; i++) {
-            givenUser("user%02d".formatted(i), "password123");
-        }
-
-        long queries = countQueries(() -> userService.search("user", 999L, 0));
-
-        assertThat(queries).isEqualTo(1);
     }
 }
