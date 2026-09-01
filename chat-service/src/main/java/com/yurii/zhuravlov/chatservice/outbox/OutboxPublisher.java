@@ -1,22 +1,23 @@
-package com.yurii.zhuravlov.authservice.outbox;
+package com.yurii.zhuravlov.chatservice.outbox;
 
-import com.yurii.zhuravlov.authservice.config.properties.KafkaTopicProperties;
-import com.yurii.zhuravlov.authservice.config.properties.OutboxProperties;
-import com.yurii.zhuravlov.authservice.outbox.payload.UserRegisteredPayload;
-import com.yurii.zhuravlov.authservice.entities.OutboxEvent;
-import com.yurii.zhuravlov.authservice.repo.OutboxEventRepository;
-import com.yurii.zhuravlov.contracts.user.UserRegistered;
+import com.yurii.zhuravlov.chatservice.config.properties.KafkaTopicProperties;
+import com.yurii.zhuravlov.chatservice.config.properties.OutboxProperties;
+import com.yurii.zhuravlov.chatservice.entities.OutboxEvent;
+import com.yurii.zhuravlov.chatservice.outbox.factory.ChatEventFactories;
+import com.yurii.zhuravlov.chatservice.repo.OutboxEventRepository;
+import com.yurii.zhuravlov.contracts.chat.ChatEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.specific.SpecificRecord;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -25,9 +26,9 @@ public class OutboxPublisher {
 
     private final OutboxEventRepository outboxRepository;
     private final KafkaTemplate<String, SpecificRecord> kafkaTemplate;
-    private final ObjectMapper objectMapper;
     private final OutboxProperties properties;
     private final KafkaTopicProperties topics;
+    private final ChatEventFactories factories;
 
     @Transactional
     public void publishPending() {
@@ -37,27 +38,23 @@ public class OutboxPublisher {
         if (batch.isEmpty()) {
             return;
         }
+        Set<String> blocked = new HashSet<>();
 
         for (OutboxEvent event : batch) {
+            if (blocked.contains(event.getAggregateId())) {
+                continue;
+            }
             try {
-                UserRegisteredPayload payload =
-                        objectMapper.readValue(event.getPayload(), UserRegisteredPayload.class);
-
-                UserRegistered avro = UserRegistered.newBuilder()
-                        .setUserId(payload.userId())
-                        .setUsername(payload.username())
-                        .setOccurredAt(payload.occurredAt())
-                        .build();
-
-                kafkaTemplate.send(topics.userEvents(), payload.userId().toString(), avro).get();
-
+                ChatEvent avro = factories.forEventType(event.getEventType()).build(event);
+                kafkaTemplate.send(topics.chatEvents(), event.getAggregateId(), avro).get();
                 event.setPublishedAt(Instant.now());
 
             } catch (Exception e) {
                 event.setAttempts(event.getAttempts() + 1);
                 event.setLastError(truncate(e.getMessage()));
-                log.warn("Failed to publish outbox event id={}, attempt={}",
-                        event.getId(), event.getAttempts(), e);
+                blocked.add(event.getAggregateId());
+                log.warn("Failed to publish outbox event id={}, type={}, attempt={}",
+                        event.getId(), event.getEventType(), event.getAttempts(), e);
             }
         }
     }

@@ -1,0 +1,116 @@
+{
+  "type": "record",
+  "name": "ChatEvent",
+  "namespace": "com.yurii.zhuravlov.contracts.chat",
+  "doc": "Envelope for chat-service events. Single topic chat-events, keyed by conversationId to preserve per-conversation ordering.",
+  "fields": [
+    {
+      "name": "eventId",
+      "type": "long",
+      "doc": "Id of the outbox_events row. Clients use it to deduplicate redelivery after reconnect."
+    },
+    { "name": "conversationId", "type": "long" },
+    {
+      "name": "occurredAt",
+      "type": { "type": "long", "logicalType": "timestamp-millis" }
+    },
+    {
+      "name": "recipients",
+      "type": { "type": "array", "items": "long" },
+      "doc": "Participants captured in the same transaction as the write, so notification-service keeps no participant replica."
+    },
+    {
+      "name": "payload",
+      "type": [
+        {
+          "type": "record",
+          "name": "MessageCreated",
+          "fields": [
+            { "name": "messageId", "type": "long" },
+            { "name": "senderId", "type": "long" },
+            {
+              "name": "clientMessageId",
+              "type": "string",
+              "doc": "Client-generated id used for idempotent send and for deduplication on delivery."
+            },
+            { "name": "content", "type": "string" },
+            {
+              "name": "createdAt",
+              "type": { "type": "long", "logicalType": "timestamp-millis" }
+            }
+          ]
+        },
+        {
+          "type": "record",
+          "name": "MessagesRead",
+          "doc": "High-water mark update. Moves forward only.",
+          "fields": [
+            { "name": "readerId", "type": "long" },
+            { "name": "lastReadMessageId", "type": "long" }
+          ]
+        },
+        {
+          "type": "record",
+          "name": "ParticipantAdded",
+          "doc": "Carries username so notification-service does not have to call back into chat.",
+          "fields": [
+            { "name": "userId", "type": "long" },
+            { "name": "username", "type": "string" }
+          ]
+        },
+        {
+          "type": "record",
+          "name": "ParticipantRemoved",
+          "doc": "Recipients include the removed user, otherwise their tab never learns the conversation is gone.",
+          "fields": [
+            { "name": "userId", "type": "long" },
+            {
+              "name": "selfLeave",
+              "type": "boolean",
+              "doc": "True when the user left on their own, false when the admin removed them."
+            }
+          ]
+        },
+        {
+          "type": "record",
+          "name": "ConversationUpdated",
+          "doc": "Covers both rename and admin transfer: the client applies them the same way.",
+          "fields": [
+            { "name": "title", "type": "string" },
+            { "name": "adminId", "type": "long" }
+          ]
+        },
+        {
+          "type": "record",
+          "name": "ConversationDeleted",
+          "doc": "No fields: the envelope already carries everything the client needs.",
+          "fields": []
+        },
+        {
+          "type": "record",
+          "name": "ConversationCreated",
+          "doc": "Sent to every participant including the creator: their other tabs do not know about the conversation yet.",
+          "fields": [
+            { "name": "title", "type": "string" },
+            { "name": "adminId", "type": "long" },
+            {
+              "name": "participants",
+              "type": {
+                "type": "array",
+                "items": {
+                  "type": "record",
+                  "name": "ParticipantInfo",
+                  "fields": [
+                    { "name": "userId", "type": "long" },
+                    { "name": "username", "type": "string" }
+                  ]
+                }
+              },
+              "doc": "Full roster with usernames so the client can render the conversation without calling back into chat."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 package com.yurii.zhuravlov.authservice.service;
 
-import com.yurii.zhuravlov.authservice.dto.UserRegisteredPayload;
+import com.yurii.zhuravlov.authservice.outbox.payload.UserRegisteredPayload;
 import com.yurii.zhuravlov.authservice.entities.OutboxEvent;
 import com.yurii.zhuravlov.authservice.entities.User;
 import com.yurii.zhuravlov.authservice.repo.OutboxEventRepository;

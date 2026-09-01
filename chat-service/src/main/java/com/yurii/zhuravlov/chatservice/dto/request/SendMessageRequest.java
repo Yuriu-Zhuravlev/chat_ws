@@ -1,4 +1,4 @@
-package com.yurii.zhuravlov.chatservice.dto;
+package com.yurii.zhuravlov.chatservice.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

@@ -63,6 +63,7 @@ services:
     environment:
       APICURIO_STORAGE_KIND: kafkasql
       APICURIO_KAFKASQL_BOOTSTRAP_SERVERS: kafka:29092
+      APICURIO_RULES_COMPATIBILITY: BACKWARD
     depends_on:
       kafka:
         condition: service_healthy

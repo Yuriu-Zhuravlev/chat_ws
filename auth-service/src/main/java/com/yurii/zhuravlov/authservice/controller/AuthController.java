@@ -4,13 +4,18 @@ import com.yurii.zhuravlov.authservice.dto.requests.LoginRequest;
 import com.yurii.zhuravlov.authservice.dto.requests.RefreshTokenRequest;
 import com.yurii.zhuravlov.authservice.dto.requests.RegistrationRequest;
 import com.yurii.zhuravlov.authservice.dto.responses.TokenResponse;
+import com.yurii.zhuravlov.authservice.dto.responses.UserResponse;
 import com.yurii.zhuravlov.authservice.mapper.TokenResponseMapper;
 import com.yurii.zhuravlov.authservice.service.AuthService;
 import com.yurii.zhuravlov.authservice.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -40,5 +45,10 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(@Valid @RequestBody RefreshTokenRequest request){
         authService.logout(request.refreshToken());
+    }
+
+    @GetMapping("/me")
+    public UserResponse me(@AuthenticationPrincipal Jwt jwt) {
+        return userService.getById(Long.valueOf(Objects.requireNonNull(jwt.getSubject())));
     }
 }

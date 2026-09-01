@@ -68,6 +68,9 @@ spring:
           jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8081/.well-known/jwks.json}
 
 app:
+  jwt:
+    issuer: ${AUTH_ISSUER:auth-service}
+    audience: chat-service
   kafka:
     topics:
       user-events: user-events

@@ -1,4 +1,4 @@
-package com.yurii.zhuravlov.authservice.dto;
+package com.yurii.zhuravlov.authservice.outbox.payload;
 
 import java.time.Instant;
 

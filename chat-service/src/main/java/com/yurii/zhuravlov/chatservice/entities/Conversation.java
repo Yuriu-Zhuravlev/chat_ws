@@ -16,12 +16,25 @@ public class Conversation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Setter
+    @Column(nullable = false)
+    private String title;
+
+    @Setter
+    @Column(nullable = false)
+    private Long adminId;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
     @Setter
     private Instant lastMessageAt;
+
+    public Conversation(String title, Long adminId) {
+        this.title = title;
+        this.adminId = adminId;
+    }
 
     protected Conversation() {
     }

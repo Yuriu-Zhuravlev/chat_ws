@@ -3,6 +3,7 @@ package com.yurii.zhuravlov.authservice.controller;
 import com.yurii.zhuravlov.authservice.config.SecurityConfig;
 import com.yurii.zhuravlov.authservice.dto.TokenPair;
 import com.yurii.zhuravlov.authservice.dto.responses.TokenResponse;
+import com.yurii.zhuravlov.authservice.dto.responses.UserResponse;
 import com.yurii.zhuravlov.authservice.exceptions.TokenTheftException;
 import com.yurii.zhuravlov.authservice.exceptions.UserAlreadyExists;
 import com.yurii.zhuravlov.authservice.handlers.GlobalExceptionHandler;
@@ -21,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -164,5 +166,26 @@ class AuthControllerTest {
     void shouldReturn405OnWrongHttpMethod() throws Exception {
         mockMvc.perform(get("/api/auth/login"))
                 .andExpect(status().isMethodNotAllowed());
+    }
+
+    @Test
+    void meShouldRequireAuthentication() throws Exception {
+        mockMvc.perform(get("/api/auth/me"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(userService);
+    }
+
+    @Test
+    void meShouldParseSubjectAsUserId() throws Exception {
+        when(userService.getById(42L)).thenReturn(new UserResponse(42L, "vasyl"));
+
+        mockMvc.perform(get("/api/auth/me")
+                        .with(jwt().jwt(b -> b.subject("42"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(42))
+                .andExpect(jsonPath("$.username").value("vasyl"));
+
+        verify(userService).getById(42L);
     }
 }
