@@ -25,17 +25,6 @@ spring:
     schemas: chat_schema
     locations: classpath:db/migration
 
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      timeout: 2s
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 2
-
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
     producer:

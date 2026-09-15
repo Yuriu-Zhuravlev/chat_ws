@@ -3,25 +3,25 @@ package com.yurii.zhuravlov.chatservice.service;
 import com.yurii.zhuravlov.chatservice.dto.projection.ConversationSummaryRow;
 import com.yurii.zhuravlov.chatservice.dto.projection.ParticipantRow;
 import com.yurii.zhuravlov.chatservice.dto.request.CreateConversationRequest;
-import com.yurii.zhuravlov.chatservice.dto.response.ConversationResponse;
-import com.yurii.zhuravlov.chatservice.dto.response.ConversationSummaryResponse;
-import com.yurii.zhuravlov.chatservice.dto.response.UserResponse;
-import com.yurii.zhuravlov.chatservice.entities.Conversation;
-import com.yurii.zhuravlov.chatservice.entities.ConversationParticipant;
-import com.yurii.zhuravlov.chatservice.entities.ParticipantId;
-import com.yurii.zhuravlov.chatservice.entities.User;
+import com.yurii.zhuravlov.chatservice.dto.request.MessagePageRequest;
+import com.yurii.zhuravlov.chatservice.dto.request.SendMessageRequest;
+import com.yurii.zhuravlov.chatservice.dto.response.*;
+import com.yurii.zhuravlov.chatservice.entities.*;
 import com.yurii.zhuravlov.chatservice.exceptions.ChatServiceException;
 import com.yurii.zhuravlov.chatservice.outbox.OutboxRecorder;
 import com.yurii.zhuravlov.chatservice.outbox.payload.*;
 import com.yurii.zhuravlov.chatservice.repo.ConversationParticipantRepository;
 import com.yurii.zhuravlov.chatservice.repo.ConversationRepository;
+import com.yurii.zhuravlov.chatservice.repo.MessageRepository;
 import com.yurii.zhuravlov.chatservice.repo.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,6 +38,7 @@ public class ConversationService {
     private final ConversationParticipantRepository participantRepository;
     private final UserRepository userRepository;
     private final OutboxRecorder outboxRecorder;
+    private final MessageRepository messageRepository;
 
     @Transactional
     public ConversationResponse create(Long me, CreateConversationRequest request) {
@@ -182,14 +183,105 @@ public class ConversationService {
                 .toList();
     }
 
+    @Transactional
+    public SendResult send(Long conversationId, Long me, SendMessageRequest request) {
+        Conversation conversation = requireParticipant(conversationId, me);
+
+        Instant now = Instant.now();
+        Optional<Long> inserted = messageRepository.insertIfAbsent(
+                conversationId, me, request.clientMessageId(), request.content(), now);
+
+        if (inserted.isEmpty()) {
+            // Retry of an already accepted message: return the stored one, publish nothing.
+            Message existing = messageRepository
+                    .findByConversationIdAndClientMessageId(conversationId, request.clientMessageId())
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Insert conflicted but the message is missing"));
+            return new SendResult(toResponse(existing), false);
+        }
+
+        Long messageId = inserted.get();
+
+        conversation.setLastMessageAt(now);
+        participantRepository.markReadForward(conversationId, me, messageId);
+
+        outboxRecorder.record(conversationId, new MessageCreatedPayload(
+                participantRepository.findUserIds(conversationId),
+                messageId, me, request.clientMessageId(), request.content(), now));
+
+        return new SendResult(new MessageResponse(
+                messageId, conversationId, me, request.clientMessageId(), request.content(), now), true);
+    }
+
+    @Transactional(readOnly = true)
+    public ConversationDetailsResponse details(Long conversationId, Long me) {
+        Conversation conversation = requireParticipant(conversationId, me);
+
+        return new ConversationDetailsResponse(
+                conversation.getId(),
+                conversation.getTitle(),
+                conversation.getAdminId(),
+                conversation.getCreatedAt(),
+                conversation.getLastMessageAt(),
+                participantRepository.findParticipantDetails(conversationId));
+    }
+
     private Conversation requireParticipant(Long conversationId, Long userId) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> notFound(conversationId));
 
         if (!participantRepository.existsById(new ParticipantId(conversationId, userId))) {
-            throw notFound(conversationId);   // 404, а не 403: не світимо існування чату
+            throw notFound(conversationId);
         }
         return conversation;
+    }
+
+    @Transactional(readOnly = true)
+    public MessagePageResponse messages(Long conversationId, Long me, MessagePageRequest request) {
+        requireParticipant(conversationId, me);
+
+        // One extra row tells "there is more" from "this is exactly the last page".
+        Pageable page = PageRequest.of(0, request.limit() + 1);
+
+        List<Message> rows = request.isBefore()
+                ? messageRepository.findBefore(conversationId,
+                request.messageId() == null ? Long.MAX_VALUE : request.messageId(), page)
+                : messageRepository.findAfter(conversationId,
+                request.messageId() == null ? 0L : request.messageId(), page);
+
+        boolean hasMore = rows.size() > request.limit();
+        if (hasMore) {
+            rows = rows.subList(0, request.limit());
+        }
+
+        List<MessageResponse> messages = rows.stream()
+                .map(this::toResponse)
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        if (request.isBefore()) {
+            Collections.reverse(messages);   // history comes back newest-first; normalise to ascending
+        }
+
+        return new MessagePageResponse(List.copyOf(messages), hasMore);
+    }
+
+    @Transactional
+    public void markRead(Long conversationId, Long me, Long messageId) {
+        requireParticipant(conversationId, me);
+
+        if (!messageRepository.existsByIdAndConversationId(messageId, conversationId)) {
+            throw new ChatServiceException(
+                    "Message " + messageId + " does not belong to conversation " + conversationId,
+                    HttpStatus.BAD_REQUEST);
+        }
+
+        int moved = participantRepository.markReadForward(conversationId, me, messageId);
+        if (moved == 0) {
+            return;
+        }
+
+        outboxRecorder.record(conversationId, new MessagesReadPayload(
+                participantRepository.findUserIds(conversationId), me, messageId));
     }
 
     private Conversation requireAdmin(Long conversationId, Long userId) {
@@ -223,6 +315,17 @@ public class ConversationService {
                 participants.stream().map(u -> new UserResponse(u.getId(), u.getUsername())).toList(),
                 conversation.getCreatedAt(),
                 conversation.getLastMessageAt()
+        );
+    }
+
+    private MessageResponse toResponse(Message message){
+        return new MessageResponse(
+                message.getId(),
+                message.getConversationId(),
+                message.getSenderId(),
+                message.getClientMessageId(),
+                message.getContent(),
+                message.getCreatedAt()
         );
     }
 }

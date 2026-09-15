@@ -1,0 +1,12 @@
+spring:
+  jpa:
+    properties:
+      hibernate:
+        generate_statistics: true
+  kafka:
+    bootstrap-servers: localhost:1   # never reached: KafkaTemplate is mocked
+
+app:
+  kafka:
+    outbox:
+      scheduling-enabled: false      # poller runs only when a test calls it

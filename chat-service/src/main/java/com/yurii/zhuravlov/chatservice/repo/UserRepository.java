@@ -13,7 +13,7 @@ import java.util.List;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    @Query("SELECT u FROM User u WHERE lower(u.username) LIKE lower(concat('%', :query, '%')) " +
+    @Query("SELECT u FROM User u WHERE lower(u.username) LIKE lower(concat('%', :query, '%')) ESCAPE '\\'" +
             "AND u.id <> :excludeId ORDER BY u.username")
     List<User> searchExcluding(@Param("query") String query,
                                @Param("excludeId") Long excludeId,

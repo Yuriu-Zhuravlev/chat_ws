@@ -2,6 +2,7 @@ package com.yurii.zhuravlov.chatservice.repo;
 
 import com.yurii.zhuravlov.chatservice.dto.projection.ConversationSummaryRow;
 import com.yurii.zhuravlov.chatservice.dto.projection.ParticipantRow;
+import com.yurii.zhuravlov.chatservice.dto.response.ParticipantResponse;
 import com.yurii.zhuravlov.chatservice.dto.response.UserResponse;
 import com.yurii.zhuravlov.chatservice.entities.ConversationParticipant;
 import com.yurii.zhuravlov.chatservice.entities.ParticipantId;
@@ -76,4 +77,26 @@ public interface ConversationParticipantRepository
         """, nativeQuery = true)
     int insertIfAbsent(@Param("conversationId") Long conversationId,
                        @Param("userId") Long userId);
+
+    @Modifying
+    @Query("""
+        UPDATE ConversationParticipant p
+        SET p.lastReadMessageId = :messageId
+        WHERE p.id.conversationId = :conversationId
+          AND p.id.userId = :userId
+          AND (p.lastReadMessageId IS NULL OR p.lastReadMessageId < :messageId)
+        """)
+    int markReadForward(@Param("conversationId") Long conversationId,
+                        @Param("userId") Long userId,
+                        @Param("messageId") Long messageId);
+
+    @Query("""
+        SELECT new com.yurii.zhuravlov.chatservice.dto.response.ParticipantResponse(
+            u.id, u.username, p.lastReadMessageId, p.joinedAt)
+        FROM ConversationParticipant p
+        JOIN User u ON u.id = p.id.userId
+        WHERE p.id.conversationId = :conversationId
+        ORDER BY u.username
+        """)
+    List<ParticipantResponse> findParticipantDetails(@Param("conversationId") Long conversationId);
 }
