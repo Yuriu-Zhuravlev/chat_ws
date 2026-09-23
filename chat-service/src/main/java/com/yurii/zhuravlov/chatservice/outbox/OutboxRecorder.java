@@ -1,10 +1,11 @@
 package com.yurii.zhuravlov.chatservice.outbox;
 
 import com.yurii.zhuravlov.chatservice.entities.OutboxEvent;
-import com.yurii.zhuravlov.chatservice.outbox.payload.ChatEventPayload;
 import com.yurii.zhuravlov.chatservice.outbox.factory.ChatEventFactories;
+import com.yurii.zhuravlov.chatservice.outbox.payload.ChatEventPayload;
 import com.yurii.zhuravlov.chatservice.repo.OutboxEventRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
@@ -17,6 +18,7 @@ public class OutboxRecorder {
     private final OutboxEventRepository outboxRepository;
     private final ChatEventFactories factories;
     private final ObjectMapper objectMapper;
+    private final ObjectProvider<OutboxWakeup> wakeup;
 
     /**
      * Must be called inside the same transaction as the domain write:
@@ -29,5 +31,7 @@ public class OutboxRecorder {
                 .eventType(factories.eventTypeOf(payload.getClass()))
                 .payload(objectMapper.writeValueAsString(payload))
                 .build());
+
+        wakeup.ifAvailable(OutboxWakeup::publishAfterCommit);
     }
 }

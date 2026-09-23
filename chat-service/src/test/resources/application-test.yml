@@ -3,8 +3,6 @@ spring:
     properties:
       hibernate:
         generate_statistics: true
-  kafka:
-    bootstrap-servers: localhost:1   # never reached: KafkaTemplate is mocked
 
 app:
   kafka:

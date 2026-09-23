@@ -1,11 +1,13 @@
 package com.yurii.zhuravlov.authservice.service;
 
-import com.yurii.zhuravlov.authservice.outbox.payload.UserRegisteredPayload;
 import com.yurii.zhuravlov.authservice.entities.OutboxEvent;
 import com.yurii.zhuravlov.authservice.entities.User;
+import com.yurii.zhuravlov.authservice.outbox.OutboxWakeup;
+import com.yurii.zhuravlov.authservice.outbox.payload.UserRegisteredPayload;
 import com.yurii.zhuravlov.authservice.repo.OutboxEventRepository;
 import com.yurii.zhuravlov.authservice.repo.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
@@ -19,6 +21,7 @@ public class UserRegistrar {
     private final UserRepository userRepository;
     private final OutboxEventRepository outboxRepository;
     private final ObjectMapper objectMapper;
+    private final ObjectProvider<OutboxWakeup> wakeup;
 
     @Transactional
     public void createWithEvent(String username, String passwordHash) {
@@ -32,6 +35,7 @@ public class UserRegistrar {
                         user.getId(), user.getUsername(), Instant.now())))
                 .build());
 
+        wakeup.ifAvailable(OutboxWakeup::publishAfterCommit);
     }
 
     private String toJson(UserRegisteredPayload payload) {

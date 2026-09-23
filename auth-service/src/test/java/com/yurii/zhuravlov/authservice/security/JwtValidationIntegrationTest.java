@@ -35,7 +35,7 @@ class JwtValidationIntegrationTest extends IntegrationTestBase {
     void shouldAcceptValidToken() throws Exception {
         User user = givenUser("vasyl", "password123");
 
-        mockMvc.perform(get("/api/users/me")
+        mockMvc.perform(get("/api/auth/me")
                         .header(AUTHORIZATION, "Bearer " + accessTokenService.issue(user)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("vasyl"));
@@ -43,7 +43,7 @@ class JwtValidationIntegrationTest extends IntegrationTestBase {
 
     @Test
     void shouldRejectRequestWithoutToken() throws Exception {
-        mockMvc.perform(get("/api/users/me"))
+        mockMvc.perform(get("/api/auth/me"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -52,7 +52,7 @@ class JwtValidationIntegrationTest extends IntegrationTestBase {
         User user = givenUser("vasyl", "password123");
         String token = tokenFor(user, claims -> claims.issuer("evil-service"));
 
-        mockMvc.perform(get("/api/users/me").header(AUTHORIZATION, "Bearer " + token))
+        mockMvc.perform(get("/api/auth/me").header(AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -61,7 +61,7 @@ class JwtValidationIntegrationTest extends IntegrationTestBase {
         User user = givenUser("vasyl", "password123");
         String token = tokenFor(user, claims -> claims.audience(List.of("some-other-service")));
 
-        mockMvc.perform(get("/api/users/me").header(AUTHORIZATION, "Bearer " + token))
+        mockMvc.perform(get("/api/auth/me").header(AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -73,7 +73,7 @@ class JwtValidationIntegrationTest extends IntegrationTestBase {
                 .issuedAt(past)
                 .expiresAt(past.plus(Duration.ofMinutes(15))));
 
-        mockMvc.perform(get("/api/users/me").header(AUTHORIZATION, "Bearer " + token))
+        mockMvc.perform(get("/api/auth/me").header(AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -83,13 +83,13 @@ class JwtValidationIntegrationTest extends IntegrationTestBase {
         String valid = accessTokenService.issue(user);
         String tampered = valid.substring(0, valid.lastIndexOf('.') + 1) + "AAAAAAAA";
 
-        mockMvc.perform(get("/api/users/me").header(AUTHORIZATION, "Bearer " + tampered))
+        mockMvc.perform(get("/api/auth/me").header(AUTHORIZATION, "Bearer " + tampered))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void shouldRejectMalformedToken() throws Exception {
-        mockMvc.perform(get("/api/users/me").header(AUTHORIZATION, "Bearer not-a-jwt"))
+        mockMvc.perform(get("/api/auth/me").header(AUTHORIZATION, "Bearer not-a-jwt"))
                 .andExpect(status().isUnauthorized());
     }
 

@@ -42,9 +42,12 @@ spring:
       group-id: chat-service
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      # Wraps the Avro deserializer so a malformed record becomes a DeserializationException
+      # the error handler can skip, instead of an endless poll() loop on the same offset.
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       enable-auto-commit: false
       properties:
+        spring.deserializer.value.delegate.class: io.confluent.kafka.serializers.KafkaAvroDeserializer
         schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8080/apis/ccompat/v7}
         specific.avro.reader: true
     listener:
