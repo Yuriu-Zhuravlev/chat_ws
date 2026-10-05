@@ -1,0 +1,18 @@
+# Keep build context small and, more importantly, keep host build output from leaking
+# into the image: a target/ built on Windows with a different JDK would otherwise be
+# copied in and silently shadow the one built inside the container.
+target/
+*/target/
+.git/
+.idea/
+*.iml
+.mvn/wrapper/maven-wrapper.jar
+compose.yaml
+docker-compose*.yaml
+Dockerfile
+*/Dockerfile
+README.md
+TEMP_README.md
+keys/
+*/keys/
+*.pem
