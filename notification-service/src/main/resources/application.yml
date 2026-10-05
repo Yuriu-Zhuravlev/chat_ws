@@ -1,6 +1,7 @@
 server:
   port: 8083
   forward-headers-strategy: framework
+  shutdown: graceful
 
 spring:
   application:

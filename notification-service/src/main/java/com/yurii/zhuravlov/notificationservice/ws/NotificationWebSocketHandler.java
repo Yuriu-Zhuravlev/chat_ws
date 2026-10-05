@@ -7,6 +7,8 @@ import com.yurii.zhuravlov.notificationservice.ws.frame.ServerFrame;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -167,5 +169,10 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
         if (task instanceof ScheduledFuture<?> future) {
             future.cancel(false);
         }
+    }
+
+    @EventListener(ContextClosedEvent.class)
+    public void closeSessionsOnShutdown() {
+        registry.allSessions().forEach(session -> close(session, CloseStatus.GOING_AWAY));
     }
 }

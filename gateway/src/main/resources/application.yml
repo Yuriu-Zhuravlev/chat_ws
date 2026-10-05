@@ -1,0 +1,67 @@
+server:
+  port: 8000
+
+spring:
+  application:
+    name: gateway
+    shutdown: graceful
+
+  lifecycle:
+    # WebSocket bridges never finish on their own, so graceful shutdown would otherwise
+    # wait out the full default (30s) on every restart. The gateway holds no state —
+    # nothing is lost by cutting them, and clients reconnect anyway.
+    timeout-per-shutdown-phase: 5s
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            # Login, refresh, registration and the public key set.
+            - id: auth
+              uri: ${AUTH_URI:http://localhost:8081}
+              predicates:
+                - Path=/api/auth/**,/.well-known/**
+
+            # User search and everything about conversations and messages.
+            - id: chat
+              uri: ${CHAT_URI:http://localhost:8082}
+              predicates:
+                - Path=/api/users/**,/api/conversations/**
+
+            # ws:// scheme, not http://: the gateway has to perform the upgrade handshake
+            # rather than proxy a plain request. This is why the gateway is reactive —
+            # the servlet variant cannot do it.
+            - id: notification-ws
+              uri: ${NOTIFICATION_WS_URI:ws://localhost:8083}
+              predicates:
+                - Path=/ws/**
+
+          # Single entry point, so CORS belongs here rather than in each service.
+          # Tighten allowed-origins before anything public.
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowed-origin-patterns: "*"
+                allowed-methods: "*"
+                allowed-headers: "*"
+                allow-credentials: false
+
+# The gateway does not validate JWTs: every service is its own resource server and
+# checks the token itself. That keeps this one stateless and dumb, and means a service
+# stays protected even when reached directly, bypassing the gateway.
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway
+  endpoint:
+    health:
+      show-details: never
+    gateway:
+      access: read-only
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO

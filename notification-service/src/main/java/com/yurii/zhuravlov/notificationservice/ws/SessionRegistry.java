@@ -3,6 +3,7 @@ package com.yurii.zhuravlov.notificationservice.ws;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -40,5 +41,9 @@ public class SessionRegistry {
 
     public int connectedUsers() {
         return sessionsByUser.size();
+    }
+
+    public Collection<WebSocketSession> allSessions() {
+        return sessionsByUser.values().stream().flatMap(Set::stream).toList();
     }
 }
