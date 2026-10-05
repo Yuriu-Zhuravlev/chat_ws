@@ -1,0 +1,4 @@
+app:
+  ws:
+    # Short enough that a test can watch the timeout fire without sleeping for seconds.
+    auth-timeout: 1s

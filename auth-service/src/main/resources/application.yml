@@ -6,6 +6,10 @@ spring:
   application:
     name: auth-service
 
+  threads:
+    virtual:
+      enabled: true
+
   data:
     redis:
       host: ${REDIS_HOST:localhost}

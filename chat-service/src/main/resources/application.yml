@@ -6,6 +6,10 @@ spring:
   application:
     name: chat-service
 
+  threads:
+    virtual:
+      enabled: true
+
   datasource:
     url: jdbc:postgresql://localhost:5433/chat_db?currentSchema=chat_schema
     username: chat_user

@@ -1,0 +1,52 @@
+server:
+  port: 8083
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: notification-service
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: notification-${random.uuid}
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      enable-auto-commit: false
+      properties:
+        spring.deserializer.value.delegate.class: io.confluent.kafka.serializers.KafkaAvroDeserializer
+        schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8080/apis/ccompat/v7}
+        specific.avro.reader: true
+    listener:
+      ack-mode: record
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8081/.well-known/jwks.json}
+
+  jackson:
+    default-property-inclusion: non_null
+
+app:
+  jwt:
+    issuer: ${AUTH_ISSUER:auth-service}
+    audience: notification-service
+  kafka:
+    topics:
+      chat-events: chat-events
+  ws:
+    path: /ws
+    # A connection that has not sent its AUTH frame by then is closed with 4401.
+    auth-timeout: 5s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: never
